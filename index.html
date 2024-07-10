@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>MintonGo</title><style>
+  .calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    width: 350px;
+  }
+  .calendar-day {
+    width: 80px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 1px solid #ccc;
+    text-align: center;
+    cursor: pointer;
+  }
+  .selected {
+    background-color: lightblue;
+  }
+  .attendance-list {
+    margin-top: 10px;
+  }
+  .attendance-list p {
+    margin: 5px 0;
+  }
+</style></head><body>
+
+<h1>MintonGo</h1>
+
+<div class="calendar" id="calendar">
+  <!-- Days will be dynamically added here --></div>
+
+<div>
+  <input type="text" id="nameInput" placeholder="Enter your name">
+  <button onclick="Check()">Check</button></div>
+
+<h2>Who is coming?</h2><div class="attendance-list" id="attendanceList">
+  <!-- Attendance list will be dynamically updated here --></div>
+
+<script>
+  const people = ['은영', '언주', '소영', '아영', '선애', '제희', '현희', '소정'];
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  let attendance = {};
+  let selectedDays = [];
+  let selectedPerson = null;
+
+  function toggleDay(day) {
+    const index = selectedDays.indexOf(day);
+    if (index === -1) {
+      selectedDays.push(day);
+    } else {
+      selectedDays.splice(index, 1);
+    }
+    updateCalendar();
+  }
+
+  function Check() {
+    const person = document.getElementById('nameInput').value.trim();
+    if (!person || !people.includes(person)) {
+      alert('Please enter a valid name from the list.');
+      return;
+    }
+
+    selectedPerson = person;
+    selectedDays.forEach(day => {
+      toggleAttendance(day, selectedPerson);
+    });
+    updateCalendar();
+  }
+
+  function toggleAttendance(day, person) {
+    if (!attendance[day]) {
+      attendance[day] = [];
+    }
+    const index = attendance[day].indexOf(person);
+    if (index === -1) {
+      attendance[day].push(person);
+    } else {
+      attendance[day].splice(index, 1);
+    }
+    updateAttendanceList();
+  }
+
+  function updateAttendanceList() {
+    const attendanceList = document.getElementById('attendanceList');
+    attendanceList.innerHTML = '';
+
+    days.forEach(day => {
+      const dayAttendance = document.createElement('p');
+      const peopleAttending = attendance[day] ? attendance[day] : [];
+      dayAttendance.textContent = `${day}: ${peopleAttending.join(', ') || 'None'} (${peopleAttending.length} attending)`;
+      attendanceList.appendChild(dayAttendance);
+    });
+  }
+
+  function updateCalendar() {
+    document.querySelectorAll('.calendar-day').forEach(day => day.classList.remove('selected'));
+    selectedDays.forEach(day => {
+      document.getElementById(day.toLowerCase()).classList.add('selected');
+    });
+  }
+
+  function createCalendar() {
+    const calendar = document.getElementById('calendar');
+    days.forEach(day => {
+      const calendarDay = document.createElement('div');
+      calendarDay.classList.add('calendar-day');
+      calendarDay.textContent = day;
+      calendarDay.id = day.toLowerCase();
+      calendarDay.addEventListener('click', () => toggleDay(day));
+      calendar.appendChild(calendarDay);
+    });
+  }
+
+  createCalendar();
+
+  days.forEach(day => {
+    attendance[day] = [];
+  });
+
+</script>
+
+</body></html>
