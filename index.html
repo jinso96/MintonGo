@@ -1,12 +1,18 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>MintonGo</title><style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MintonGo</title>
+<style>
   .calendar {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 5px;
-    width: 350px;
+    width: 200px;
   }
   .calendar-day {
-    width: 80px;
+    width: 60px;
     height: 20px;
     display: flex;
     align-items: center;
@@ -25,24 +31,33 @@
   .attendance-list p {
     margin: 5px 0;
   }
-</style></head><body>
+  .input-section {
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
 
 <h1>MintonGo</h1>
 
 <div class="calendar" id="calendar">
-  <!-- Days will be dynamically added here --></div>
+  <!-- Days will be dynamically added here -->
+</div>
 
-<div>
+<div class="input-section">
   <input type="text" id="nameInput" placeholder="Enter your name">
-  <button onclick="Check()">Check</button></div>
+  <button onclick="Check()">Check</button>
+</div>
 
-<h2>Who is coming?</h2><div class="attendance-list" id="attendanceList">
-  <!-- Attendance list will be dynamically updated here --></div>
+<h2>Who is coming?</h2>
+<div class="attendance-list" id="attendanceList">
+  <!-- Attendance list will be dynamically updated here -->
+</div>
 
 <script>
   const people = ['은영', '언주', '소영', '아영', '선애', '제희', '현희', '소정'];
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  let attendance = {};
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sun'];
+  let attendance = JSON.parse(localStorage.getItem('attendance')) || {};
   let selectedDays = [];
   let selectedPerson = null;
 
@@ -57,17 +72,43 @@
   }
 
   function Check() {
-    const person = document.getElementById('nameInput').value.trim();
-    if (!person || !people.includes(person)) {
-      alert('Please enter a valid name from the list.');
+    const input = document.getElementById('nameInput').value.trim();
+    if (input.endsWith('초기화')) {
+      const person = input.replace('초기화', '').trim();
+      if (people.includes(person)) {
+        clearAttendanceForPerson(person);
+        saveAttendance();
+        updateAttendanceList();
+        alert(`${person}의 참석 정보가 초기화되었습니다.`);
+      } else {
+        alert('초기화할 유효한 이름을 입력하세요.');
+      }
       return;
     }
 
-    selectedPerson = person;
+    if (!people.includes(input)) {
+      alert('유효한 이름을 입력하세요.');
+      return;
+    }
+
+    selectedPerson = input;
+    clearAttendanceForPerson(selectedPerson);
     selectedDays.forEach(day => {
       toggleAttendance(day, selectedPerson);
     });
+    saveAttendance();
     updateCalendar();
+  }
+
+  function clearAttendanceForPerson(person) {
+    days.forEach(day => {
+      if (attendance[day]) {
+        const index = attendance[day].indexOf(person);
+        if (index !== -1) {
+          attendance[day].splice(index, 1);
+        }
+      }
+    });
   }
 
   function toggleAttendance(day, person) {
@@ -91,8 +132,19 @@
       const dayAttendance = document.createElement('p');
       const peopleAttending = attendance[day] ? attendance[day] : [];
       dayAttendance.textContent = `${day}: ${peopleAttending.join(', ') || 'None'} (${peopleAttending.length} attending)`;
+      dayAttendance.addEventListener('click', () => editAttendance(day));
       attendanceList.appendChild(dayAttendance);
     });
+  }
+
+  function editAttendance(day) {
+    const person = prompt(`Edit attendance for ${day}. Enter name to toggle attendance:`);
+    if (person && people.includes(person)) {
+      toggleAttendance(day, person);
+      saveAttendance();
+    } else {
+      alert('Invalid name.');
+    }
   }
 
   function updateCalendar() {
@@ -112,14 +164,38 @@
       calendarDay.addEventListener('click', () => toggleDay(day));
       calendar.appendChild(calendarDay);
     });
+    days.forEach(day => {
+      if (!attendance[day]) {
+        attendance[day] = [];
+      }
+    });
+    updateAttendanceList(); // Ensure the attendance list is displayed by default
+  }
+
+  function saveAttendance() {
+    localStorage.setItem('attendance', JSON.stringify(attendance));
+  }
+
+  function checkAndClearAttendance() {
+    const now = new Date();
+    const lastClearTime = localStorage.getItem('lastClearTime');
+    const oneWeek = 7 * 24 * 60 * 60 * 1000; // One week in milliseconds
+
+    if (!lastClearTime || (now - new Date(lastClearTime)) >= oneWeek) {
+      if (now.getDay() === 0 && now.getHours() === 0) {
+        attendance = {};
+        saveAttendance();
+        localStorage.setItem('lastClearTime', now.toISOString());
+        updateAttendanceList();
+      }
+    }
   }
 
   createCalendar();
-
-  days.forEach(day => {
-    attendance[day] = [];
-  });
+  checkAndClearAttendance();
+  setInterval(checkAndClearAttendance, 60 * 1000); // Check every minute
 
 </script>
 
-</body></html>
+</body>
+</html>
